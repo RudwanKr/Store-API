@@ -17,25 +17,29 @@ namespace Store_API.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<OrderResponseDto>> AddOrder(OrderRequestDto request)
+        public async Task<ActionResult<OrderResponseDto>> AddOrder(OrderRequestDto dto)
         {
+            var customer = await _context.Customers.FindAsync(dto.CustomerID);
+            if (customer == null) return BadRequest("Customer not found.");
+
             var newOrder = new Order
             {
-                CustomerID = request.CustomerID,
+                CustomerID = dto.CustomerID,
                 Date = DateTime.Now,
                 OrderDetails = new List<OrderDetails>()
             };
 
             double calculatedTotal = 0;
 
-            foreach (var item in request.Items)
+            foreach (var item in dto.Items)
             {
                 var product = await _context.Products.FindAsync(item.ProductID);
-
                 if (product == null) return BadRequest($"Product {item.ProductID} not found.");
-                if (product.Quantity < item.Quantity) return BadRequest($"Not enough stock for {product.Name}.");
 
-                product.decreaseQuantity(item.Quantity);
+                if (product.Quantity < item.Quantity)
+                    return BadRequest($"Not enough stock for {product.Name}.");
+
+                product.Quantity -= item.Quantity;
 
                 var detail = new OrderDetails
                 {
@@ -53,21 +57,22 @@ namespace Store_API.Controllers
             _context.Orders.Add(newOrder);
             await _context.SaveChangesAsync();
 
-            return Ok(new OrderResponseDto
+            var response = new OrderResponseDto
             {
                 ID = newOrder.ID,
+                CustomerName = customer.Name,
                 Date = newOrder.Date,
                 TotalPrice = newOrder.TotalPrice,
-                CustomerName = newOrder.customer.Name,
                 Items = newOrder.OrderDetails.Select(od => new OrderItemResponseDto
                 {
-                    ProductName = od.Product.Name,
+                    ProductName = _context.Products.Find(od.ProductID)?.Name ?? "Unknown Product",
                     Quantity = od.Quantity,
                     UnitPrice = od.UnitPrice
                 }).ToList()
-            });
-        }
+            };
 
+            return Ok(response);
+        }
         [HttpGet]
         public async Task<ActionResult<IEnumerable<OrderResponseDto>>> GetAllOrders()
         {
