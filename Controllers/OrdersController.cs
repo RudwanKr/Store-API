@@ -81,7 +81,7 @@ namespace Store_API.Controllers
                 .Select( o => new OrderResponseDto
                 {
                     ID = o.ID,
-                    CustomerName = o.customer.Name,
+                    CustomerName = o.customer.Name ?? "Unknown customer",
                     Date = o.Date,
                     TotalPrice = o.TotalPrice,
                     Items = o.OrderDetails.Select(od => new OrderItemResponseDto
