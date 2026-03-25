@@ -46,7 +46,7 @@ namespace Store_API.Controllers
         }
 
         [HttpPost("add")]
-        public async Task<ActionResult<ProductResponse>> Add(ProductCreateRequest request)
+        public async Task<ActionResult<ProductResponse>> Add(ProductCreateRequest request, CancellationToken ct = default)
         {
             var productEntity = new Product
             {
@@ -55,7 +55,7 @@ namespace Store_API.Controllers
                 Price = request.Price
             };
             _context.Products.Add(productEntity);
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(ct);
 
             var response = new ProductResponse
             {
@@ -69,7 +69,7 @@ namespace Store_API.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, ProductCreateRequest request)
+        public async Task<IActionResult> Update(int id, ProductCreateRequest request, CancellationToken ct = default)
         {
             var existingProduct = await _context.Products.FindAsync(id);
             if (existingProduct == null) return NotFound($"Product with ID {id} not found.");
@@ -78,13 +78,13 @@ namespace Store_API.Controllers
             existingProduct.Quantity = request.Quantity;
             existingProduct.Price = request.Price;
 
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(ct);
 
             return NoContent();
         }
 
         [HttpPatch("{id:int}/update-stock")]
-        public async Task<IActionResult> UpdateProductQuantity(int id, [FromQuery] int newQuantity)
+        public async Task<IActionResult> UpdateProductQuantity(int id, [FromQuery] int newQuantity, CancellationToken ct = default)
         {
             if (newQuantity < 0) return BadRequest("Quantity cannot be negative.");
 
@@ -92,13 +92,13 @@ namespace Store_API.Controllers
             if (product == null) return NotFound();
 
             product.Quantity = newQuantity;
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(ct);
 
             return Ok(new { message = "Stock updated successfully", currentStock = product.Quantity });
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<IActionResult> Delete(int id, CancellationToken ct = default)
         {
             var product = await _context.Products
                 .Include(p => p.OrderDetails)
@@ -112,7 +112,7 @@ namespace Store_API.Controllers
             }
 
             _context.Products.Remove(product);
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(ct);
 
             return NoContent();
         }

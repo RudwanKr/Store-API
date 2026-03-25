@@ -17,7 +17,7 @@ namespace Store_API.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<OrderResponseDto>> AddOrder(OrderRequestDto dto)
+        public async Task<ActionResult<OrderResponseDto>> AddOrder(OrderRequestDto dto, CancellationToken ct = default)
         {
             var customer = await _context.Customers.FindAsync(dto.CustomerID);
             if (customer == null) return BadRequest("Customer not found.");
@@ -55,7 +55,7 @@ namespace Store_API.Controllers
             newOrder.TotalPrice = calculatedTotal;
 
             _context.Orders.Add(newOrder);
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(ct);
 
             var response = new OrderResponseDto
             {

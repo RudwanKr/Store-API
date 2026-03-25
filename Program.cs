@@ -1,5 +1,6 @@
 
 using Scalar.AspNetCore;
+using Store_API.Services;
 
 namespace Store_API
 {
@@ -14,6 +15,7 @@ namespace Store_API
             builder.Services.AddControllers();
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();
+            builder.Services.AddScoped<IMessageService, EmailService>();
 
             var app = builder.Build();
 

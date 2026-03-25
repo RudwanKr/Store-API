@@ -18,7 +18,7 @@ namespace Store_API.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<CustomerResponse>> Add(CustomerCreateRequest request)
+        public async Task<ActionResult<CustomerResponse>> Add(CustomerCreateRequest request, CancellationToken ct = default)
         {
             var customerEntity = new Customer
             {
@@ -27,7 +27,7 @@ namespace Store_API.Controllers
             };
 
             _context.Customers.Add(customerEntity);
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(ct);
 
             var response = new CustomerResponse
             {
@@ -68,7 +68,7 @@ namespace Store_API.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, CustomerCreateRequest request)
+        public async Task<IActionResult> Update(int id, CustomerCreateRequest request, CancellationToken ct = default)
         {
             var existingCustomer = await _context.Customers.FindAsync(id);
             if (existingCustomer == null) return NotFound($"Customer with ID {id} not found.");
@@ -76,13 +76,13 @@ namespace Store_API.Controllers
             existingCustomer.Name = request.Name;
             existingCustomer.Phone = request.Phone;
 
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(ct);
 
             return NoContent();
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<IActionResult> Delete(int id,CancellationToken ct = default)
         {
             var customer = await _context.Customers
                 .Include(p => p.Orders)
@@ -96,7 +96,7 @@ namespace Store_API.Controllers
             }
 
             _context.Customers.Remove(customer);
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(ct);
 
             return NoContent();
         }
