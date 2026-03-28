@@ -24,9 +24,17 @@ namespace Store_API.Services.Implementations
                     Price = p.Price
                 }).ToListAsync(ct);
         }
-        public Task<ProductResponse?> GetByIdAsync(int id, CancellationToken ct = default)
+        public async Task<ProductResponse?> GetByIdAsync(int id, CancellationToken ct = default)
         {
-            throw new NotImplementedException();
+            var product = await _context.Products.FindAsync(id);
+            return product is null ? null :
+                new ProductResponse
+                {
+                    ID = product.ID,
+                    Name = product.Name,
+                    Quantity = product.Quantity,
+                    Price = product.Price,
+                };
         }
         public async Task<ProductResponse> AddAsync(ProductCreateRequest request, CancellationToken ct = default)
         {

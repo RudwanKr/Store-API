@@ -10,80 +10,45 @@ namespace Store_API.Controllers
     [Route("api/[controller]")]
     public class ProductsController : ControllerBase
     {
-        private readonly AppDBContext _context;
         private readonly IProductService _productService;
-        public ProductsController(AppDBContext context,IProductService productService)
+        public ProductsController(IProductService productService)
         {
-            _context = context;
             _productService = productService;
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ProductResponse>>> GetAll()
+        public async Task<ActionResult<IEnumerable<ProductResponse>>> GetAll(CancellationToken ct)
         {
-            var products = await _context.Products.AsNoTracking()
-                .Select(p => new ProductResponse
-                {
-                    ID = p.ID,
-                    Name = p.Name,
-                    Quantity = p.Quantity,
-                    Price = p.Price
-                })
-                .ToListAsync();
+            // Don't forget to pass 'ct' everywhere!
+            var products = await _productService.GetAllAsync(ct);
             return Ok(products);
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<Product>> GetById(int id)
+        public async Task<ActionResult<ProductResponse>> GetById(int id, CancellationToken ct)
         {
-            var product = await _context.Products.FindAsync(id);
-            return product is null ? NotFound(new { message = $"Product with ID {id} does not exist." }) :
-                Ok(new ProductResponse
-                {
-                    ID = product.ID,
-                    Name = product.Name,
-                    Quantity = product.Quantity,
-                    Price = product.Price,
+            var product = await _productService.GetByIdAsync(id, ct);
 
-                });
+            return product is null
+                ? NotFound(new { message = $"Product with ID {id} does not exist." })
+                : Ok(product);
         }
 
         [HttpPost("add")]
         public async Task<ActionResult<ProductResponse>> Add(ProductCreateRequest request, CancellationToken ct = default)
         {
-            var productEntity = new Product
-            {
-                Name = request.Name,
-                Quantity = request.Quantity,
-                Price = request.Price
-            };
-            _context.Products.Add(productEntity);
-            await _context.SaveChangesAsync(ct);
-
-            var response = new ProductResponse
-            {
-                ID = productEntity.ID,
-                Name = productEntity.Name,
-                Quantity = productEntity.Quantity,
-                Price = productEntity.Price
-            };
+            var response = await _productService.AddAsync(request, ct);
 
             return CreatedAtAction(nameof(GetById), new { id = response.ID }, response);
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, ProductCreateRequest request, CancellationToken ct = default)
+        public async Task<IActionResult> Update(int id, ProductCreateRequest request, CancellationToken ct)
         {
-            var existingProduct = await _context.Products.FindAsync(id);
-            if (existingProduct == null) return NotFound($"Product with ID {id} not found.");
+            var success = await _productService.UpdateAsync(id, request, ct);
+            if (!success) return NotFound(new { message = "Update failed. Product not found." });
 
-            existingProduct.Name = request.Name;
-            existingProduct.Quantity = request.Quantity;
-            existingProduct.Price = request.Price;
-
-            await _context.SaveChangesAsync(ct);
-
-            return NoContent();
+            return Ok(new { message = "Product updated successfully" });
         }
 
         [HttpPatch("{id:int}/update-stock")]
@@ -100,23 +65,11 @@ namespace Store_API.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id, CancellationToken ct = default)
+        public async Task<IActionResult> Delete(int id, CancellationToken ct)
         {
-            var product = await _context.Products
-                .Include(p => p.OrderDetails)
-                .FirstOrDefaultAsync(p => p.ID == id);
+            var success = await _productService.DeleteAsync(id, ct);
 
-            if (product == null) return NotFound();
-
-            if (product.OrderDetails.Any())
-            {
-                return BadRequest("Cannot delete product because it is linked to existing orders.");
-            }
-
-            _context.Products.Remove(product);
-            await _context.SaveChangesAsync(ct);
-
-            return NoContent();
+            return success ? NoContent() : NotFound("The product was not found or is linked to orders.");
         }
 
         [HttpGet("filterByPrice")]
