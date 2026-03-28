@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Store_API.DTOs.ProductDtos;
 using Store_API.Models;
+using Store_API.Services.Abstractions;
 
 namespace Store_API.Controllers
 {
@@ -10,9 +11,11 @@ namespace Store_API.Controllers
     public class ProductsController : ControllerBase
     {
         private readonly AppDBContext _context;
-        public ProductsController(AppDBContext context)
+        private readonly IProductService _productService;
+        public ProductsController(AppDBContext context,IProductService productService)
         {
             _context = context;
+            _productService = productService;
         }
 
         [HttpGet]
@@ -84,17 +87,16 @@ namespace Store_API.Controllers
         }
 
         [HttpPatch("{id:int}/update-stock")]
-        public async Task<IActionResult> UpdateProductQuantity(int id, [FromQuery] int newQuantity, CancellationToken ct = default)
+        public async Task<IActionResult> UpdateProductQuantity(int id, [FromQuery] int newQuantity, CancellationToken ct)
         {
-            if (newQuantity < 0) return BadRequest("Quantity cannot be negative.");
+            var success = await _productService.UpdateStockAsync(id, newQuantity, ct);
 
-            var product = await _context.Products.FindAsync(id);
-            if (product == null) return NotFound();
+            if (!success)
+            {
+                return BadRequest(new { message = "Update failed. Check if ID exists or quantity is valid." });
+            }
 
-            product.Quantity = newQuantity;
-            await _context.SaveChangesAsync(ct);
-
-            return Ok(new { message = "Stock updated successfully", currentStock = product.Quantity });
+            return Ok(new { message = "Stock updated successfully", currentStock = newQuantity });
         }
 
         [HttpDelete("{id}")]
@@ -118,38 +120,23 @@ namespace Store_API.Controllers
         }
 
         [HttpGet("filterByPrice")]
-        public async Task<ActionResult<List<ProductResponse>>> FilterByPrice([FromQuery] double minPrice, [FromQuery] double maxPrice)
+        public async Task<ActionResult<List<ProductResponse>>> FilterByPrice([FromQuery] double minPrice, [FromQuery] double maxPrice,CancellationToken ct = default)
         {
-            var products = await _context.Products
-                .AsNoTracking()
-                .Select(p => new ProductResponse
-                {
-                    ID = p.ID,
-                    Name = p.Name,
-                    Quantity = p.Quantity,
-                    Price = p.Price
-                })
-                .Where(p => p.Price >= minPrice && p.Price <= maxPrice)
-                .ToListAsync();
-
-            return Ok(products);
+            var results = await _productService.FilterByPriceAsync(minPrice, maxPrice, ct);
+            return Ok(results);
         }
-        public async Task<ActionResult<ProductResponse>> GetMostProductQuantity()
+        [HttpGet("most-quantity")]
+        public async Task<ActionResult<ProductResponse>> GetMostQuantity(CancellationToken ct)
         {
-            var product = await _context.Products
-                .AsNoTracking()
-                .OrderByDescending(p => p.Quantity)
-                .FirstOrDefaultAsync();
+            var result = await _productService.GetMostProductQuantityAsync(ct);
 
-            return product is null ? NotFound() :
-                Ok(new ProductResponse
-                {
-                    ID = product.ID,
-                    Name = product.Name,
-                    Quantity = product.Quantity,
-                    Price = product.Price,
-                });
+            if (result == null)
+            {
+                return NotFound(new { message = "No products found in the database." });
+            }
+
+            return Ok(result);
         }
-        
+
     }
 }
