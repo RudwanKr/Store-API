@@ -1,6 +1,8 @@
 
 using Scalar.AspNetCore;
 using Store_API.Services;
+using Store_API.Services.Abstractions;
+using Store_API.Services.Implementations;
 
 namespace Store_API
 {
@@ -15,20 +17,17 @@ namespace Store_API
             builder.Services.AddControllers();
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();
-            builder.Services.AddScoped<IMessageService, EmailService>();
+            builder.Services.AddScoped<IProductService, ProductService>();
 
             var app = builder.Build();
 
-            // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
-                // Generates the JSON file for the API
                 app.MapOpenApi();
 
-                // Maps the Scalar UI to /scalar
                 app.MapScalarApiReference();
             }
-
+            app.UseMiddleware<MiddleWares.ExceptionHandlingMiddleware>();
             app.UseHttpsRedirection();
 
             app.UseAuthorization();

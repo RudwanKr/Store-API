@@ -19,7 +19,6 @@ namespace Store_API.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<ProductResponse>>> GetAll(CancellationToken ct)
         {
-            // Don't forget to pass 'ct' everywhere!
             var products = await _productService.GetAllAsync(ct);
             return Ok(products);
         }
