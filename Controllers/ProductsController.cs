@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Store_API.DTOs.ProductDtos;
+using Store_API.MiddleWares;
 using Store_API.Models;
 using Store_API.Services.Abstractions;
 
@@ -89,6 +90,15 @@ namespace Store_API.Controllers
 
             return Ok(result);
         }
+
+        [HttpGet("test-crash")]
+        public IActionResult TestCrash()
+        {
+            throw new UnauthorizedAccessException("You aren't supposed to be here!");
+        }
+        [ApiKey]  // ONLY runs the check for this specific action!
+        [HttpPost("test-apikey")]
+        public IActionResult CreateSecretProduct() => Ok("Secret Product Created");
 
     }
 }
