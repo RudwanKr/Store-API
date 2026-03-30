@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Store_API.DTOs.CustomerDtos;
-using Store_API.DTOs.ProductDtos;
 using Store_API.Models;
 
 namespace Store_API.Controllers

@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Store_API.DTOs.ProductDtos;
+﻿using Store_API.DTOs.ProductDtos;
 
 namespace Store_API.Services.Abstractions
 {
